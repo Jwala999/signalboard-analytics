@@ -3,11 +3,10 @@ services:
     name: signalboard-analytics
     env: docker
     plan: free
-    dockerCommand: npm run start
     envVars:
-      - key: PORT
-        value: 5000
-      - key: JWT_SECRET
-        generateValue: true
       - key: OPENAI_API_KEY
         sync: false
+      - key: OPENAI_BASE_URL
+        value: https://router.huggingface.co/v1
+      - key: JWT_SECRET
+        generateValue: true
