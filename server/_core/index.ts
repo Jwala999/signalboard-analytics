@@ -51,7 +51,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Serve static files from dist/public in production
-    const staticPath = path.resolve(__dirname, "..", "public");
+    const staticPath = path.resolve(__dirname, "public");
     app.use(express.static(staticPath));
 
     // Handle client-side routing - serve index.html for all routes
