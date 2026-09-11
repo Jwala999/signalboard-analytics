@@ -7,29 +7,43 @@ import pandas as pd
 
 def analyze():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filename", type=str, default="dataset.csv")
-    parser.add_argument("--out", type=str, default=None)
+    parser.add_argument("--filename", type=str, required=True)
+    parser.add_argument("--out", type=str, required=False, help="Path to write JSON output")
+    parser.add_argument("--in", dest="in_file", type=str, required=False, help="Path to read base64 input")
     args = parser.parse_args()
-    filename = args.filename.lower()
+
+    filename = args.filename
     out_path = args.out
 
-    # Read base64 from stdin
-    base64_data = sys.stdin.read().strip()
+    if args.in_file:
+        with open(args.in_file, "r", encoding="utf-8") as f:
+            base64_data = f.read()
+    else:
+        base64_data = sys.stdin.read()
+    base64_data = base64_data.strip()
     if not base64_data:
         print(json.dumps({"error": "No data provided to python script"}))
         return
 
     try:
-        raw_bytes = base64.b64decode(base64_data)
+        csv_bytes = base64.b64decode(base64_data)
     except Exception as e:
         print(json.dumps({"error": f"Failed to decode base64: {str(e)}"}))
         return
 
+    # Aggressively free memory to prevent OOM in 512MB containers
+    del base64_data
+    import gc
+    gc.collect()
+
     try:
-        if filename.endswith(".xlsx") or filename.endswith(".xls"):
-            df = pd.read_excel(io.BytesIO(raw_bytes))
+        if filename.lower().endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(io.BytesIO(csv_bytes))
         else:
-            df = pd.read_csv(io.BytesIO(raw_bytes))
+            df = pd.read_csv(io.BytesIO(csv_bytes))
+            
+        del csv_bytes
+        gc.collect()
     except Exception as e:
         print(json.dumps({"error": f"Failed to parse file: {str(e)}"}))
         return

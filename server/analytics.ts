@@ -10,12 +10,13 @@ import path from "path";
 
 export function analyzeWithPython(filename: string, base64Data: string) {
   const tmpJsonPath = path.join(os.tmpdir(), `analytics_out_${randomUUID()}.json`);
+  const tmpInputPath = path.join(os.tmpdir(), `analytics_in_${randomUUID()}.txt`);
   
   try {
-    const result = spawnSync("python3", ["scripts/analyze_dataset.py", "--filename", filename, "--out", tmpJsonPath], {
-      input: base64Data,
+    fs.writeFileSync(tmpInputPath, base64Data);
+    const result = spawnSync("python3", ["scripts/analyze_dataset.py", "--filename", filename, "--out", tmpJsonPath, "--in", tmpInputPath], {
       encoding: "utf8",
-      maxBuffer: 50 * 1024 * 1024, // 50MB is plenty if we just catch stderr
+      maxBuffer: 50 * 1024 * 1024,
     });
     
     if (result.error) throw new Error(`Python analytics engine unavailable: ${result.error.message}`);
@@ -33,6 +34,11 @@ export function analyzeWithPython(filename: string, base64Data: string) {
     if (fs.existsSync(tmpJsonPath)) {
       try {
         fs.unlinkSync(tmpJsonPath);
+      } catch (e) {}
+    }
+    if (fs.existsSync(tmpInputPath)) {
+      try {
+        fs.unlinkSync(tmpInputPath);
       } catch (e) {}
     }
   }
