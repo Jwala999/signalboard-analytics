@@ -56,10 +56,9 @@ def analyze():
     df.dropna(how='all', inplace=True)
     df.dropna(how='all', axis=1, inplace=True)
     
-    # Fill NaN with empty string for JSON serialization compatibility
-    df_filled = df.fillna("")
-    
-    raw_rows = df_filled.to_dict(orient="records")
+    MAX_ROWS = 10000
+    # Crucial: Only convert the first MAX_ROWS to dict to prevent Python from allocating 150,000 dictionaries and OOMing!
+    raw_rows = df.head(MAX_ROWS).fillna("").to_dict(orient="records")
     
     num_rows = len(df)
     num_cols = len(df.columns)
@@ -209,7 +208,7 @@ def analyze():
             "boolean_columns": boolean_cols
         },
         "columns": columns_out,
-        "raw_rows": raw_rows if num_rows <= 5000 else [],
+        "raw_rows": raw_rows[:MAX_ROWS],
         "normalized_rows": normalized_rows,
         "insights": insights,
         "python_engine": True,
