@@ -139,31 +139,39 @@ def analyze():
     
     # Precompute valid numeric series for fast iteration
     if orders_col:
-        s_orders = pd.to_numeric(df[orders_col], errors='coerce').fillna(0)
+        l_orders = pd.to_numeric(df[orders_col], errors='coerce').fillna(0).tolist()
     else:
-        s_orders = pd.Series([0] * num_rows)
+        l_orders = [0] * num_rows
         
     if aov_col:
-        s_aov = pd.to_numeric(df[aov_col], errors='coerce').fillna(0)
+        l_aov = pd.to_numeric(df[aov_col], errors='coerce').fillna(0).tolist()
     else:
-        s_aov = pd.Series([0] * num_rows)
+        l_aov = [0] * num_rows
         
     if returns_col:
-        s_returns = pd.to_numeric(df[returns_col], errors='coerce').fillna(0)
+        l_returns = pd.to_numeric(df[returns_col], errors='coerce').fillna(0).tolist()
     else:
-        s_returns = pd.Series([0] * num_rows)
+        l_returns = [0] * num_rows
         
-    for i in range(num_rows):
+    l_date = df[date_col].fillna("").astype(str).tolist() if date_col else [f"Row {i+1}" for i in range(num_rows)]
+    l_channel = df[channel_col].fillna("").astype(str).tolist() if channel_col else [""] * num_rows
+    l_region = df[region_col].fillna("").astype(str).tolist() if region_col else [""] * num_rows
+        
+    MAX_ROWS = 10000
+    for i in range(min(num_rows, MAX_ROWS)):
         normalized_rows.append({
-            "date": str(df[date_col].iloc[i]) if date_col and pd.notna(df[date_col].iloc[i]) else f"Row {i+1}",
-            "channel": str(df[channel_col].iloc[i]) if channel_col and pd.notna(df[channel_col].iloc[i]) else "Unassigned",
-            "region": str(df[region_col].iloc[i]) if region_col and pd.notna(df[region_col].iloc[i]) else "Unknown",
-            "orders": float(s_orders.iloc[i]),
-            "aov": float(s_aov.iloc[i]),
-            "returns": float(s_returns.iloc[i])
+            "date": l_date[i] if l_date[i] else f"Row {i+1}",
+            "channel": l_channel[i] if l_channel[i] else "Unassigned",
+            "region": l_region[i] if l_region[i] else "Unknown",
+            "orders": float(l_orders[i]),
+            "aov": float(l_aov[i]),
+            "returns": float(l_returns[i])
         })
         
     insights = []
+    if num_rows > MAX_ROWS:
+        insights.append(f"Dashboard is visualizing a randomized sample of {MAX_ROWS} rows for performance. The file contains {num_rows} total rows.")
+        
     if missing_values > 0:
         pct = round((missing_values / (num_rows * num_cols)) * 100, 1)
         insights.append(f"Found {missing_values} missing values ({pct}% of data).")
