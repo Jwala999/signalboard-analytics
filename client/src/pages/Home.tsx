@@ -264,7 +264,7 @@ export default function Home() {
   const selectedRows = useMemo(() => filteredRows.slice().sort((a, b) => b.orders - a.orders), [filteredRows]);
 
   const displayRows = useMemo<Array<Record<string, string | number>>>(() => {
-    if (analysisData?.raw_rows) {
+    if (analysisData?.raw_rows?.length) {
       const filteredSet = new Set(filteredRows);
       return analysisData.raw_rows.filter((_, index) => {
         const normalized = analysisData.normalized_rows?.[index];
@@ -351,7 +351,7 @@ export default function Home() {
   }
 
   function reanalyzeEdited() {
-    if (!analysisData?.raw_rows || !analysisData.columns?.length) return;
+    if (!analysisData?.raw_rows?.length || !analysisData.columns?.length) return;
     const columns = analysisData.columns.map((column) => column.name);
     const escapeCsv = (value: string) => `"${value.replaceAll('"', '""')}"`;
     const csv = [columns.join(","), ...analysisData.raw_rows.map((row) => columns.map((column) => escapeCsv(String(row[column] ?? ""))).join(","))].join("\n");

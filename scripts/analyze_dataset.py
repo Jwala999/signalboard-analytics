@@ -8,8 +8,10 @@ import pandas as pd
 def analyze():
     parser = argparse.ArgumentParser()
     parser.add_argument("--filename", type=str, default="dataset.csv")
+    parser.add_argument("--out", type=str, default=None)
     args = parser.parse_args()
     filename = args.filename.lower()
+    out_path = args.out
 
     # Read base64 from stdin
     base64_data = sys.stdin.read().strip()
@@ -185,14 +187,18 @@ def analyze():
             "boolean_columns": boolean_cols
         },
         "columns": columns_out,
-        "raw_rows": raw_rows,
+        "raw_rows": raw_rows if num_rows <= 5000 else [],
         "normalized_rows": normalized_rows,
         "insights": insights,
         "python_engine": True,
         "filename": args.filename
     }
     
-    print(json.dumps(result))
+    if out_path:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(result, f)
+    else:
+        print(json.dumps(result))
 
 if __name__ == "__main__":
     analyze()

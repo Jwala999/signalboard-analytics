@@ -3,18 +3,39 @@ import { invokeLLM } from "./_core/llm";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
+import { randomUUID } from "crypto";
+import fs from "fs";
+import os from "os";
+import path from "path";
+
 export function analyzeWithPython(filename: string, base64Data: string) {
-  const result = spawnSync("python3", ["scripts/analyze_dataset.py", "--filename", filename], {
-    input: base64Data,
-    encoding: "utf8",
-    maxBuffer: 500 * 1024 * 1024,
-  });
-  if (result.error) throw new Error(`Python analytics engine unavailable: ${result.error.message}`);
-  const raw = String(result.stdout || "").trim();
-  if (!raw) throw new Error(String(result.stderr || "Python analytics engine returned no result"));
-  const parsed = JSON.parse(raw) as { error?: string } & Record<string, unknown>;
-  if (parsed.error) throw new Error(parsed.error);
-  return parsed;
+  const tmpJsonPath = path.join(os.tmpdir(), `analytics_out_${randomUUID()}.json`);
+  
+  try {
+    const result = spawnSync("python3", ["scripts/analyze_dataset.py", "--filename", filename, "--out", tmpJsonPath], {
+      input: base64Data,
+      encoding: "utf8",
+      maxBuffer: 50 * 1024 * 1024, // 50MB is plenty if we just catch stderr
+    });
+    
+    if (result.error) throw new Error(`Python analytics engine unavailable: ${result.error.message}`);
+    
+    if (!fs.existsSync(tmpJsonPath)) {
+      const errOut = String(result.stderr || result.stdout || "Python analytics engine failed to produce output").trim();
+      throw new Error(errOut);
+    }
+    
+    const raw = fs.readFileSync(tmpJsonPath, "utf8");
+    const parsed = JSON.parse(raw) as { error?: string } & Record<string, unknown>;
+    if (parsed.error) throw new Error(parsed.error);
+    return parsed;
+  } finally {
+    if (fs.existsSync(tmpJsonPath)) {
+      try {
+        fs.unlinkSync(tmpJsonPath);
+      } catch (e) {}
+    }
+  }
 }
 
 function stringifyContent(content: unknown) {
